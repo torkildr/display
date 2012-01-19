@@ -54,7 +54,7 @@ PORTC &= ~(1 << (_pin -14) ))
 //  CTORS & DTOR
 //
 // Setup the buffers within the constructor, a little more inflexible but saves pain later on
-MatrixDisplay::MatrixDisplay(uint8_t numDisplays, uint8_t clkPin, uint8_t dataPin, bool buildShadow)
+MatrixDisplay::MatrixDisplay(uint8_t numDisplays, uint8_t clkPin, uint8_t dataPin)
     : pDisplayBuffers(NULL)
     , pDisplayPins(NULL)
     , dataPin(dataPin)
@@ -68,13 +68,6 @@ MatrixDisplay::MatrixDisplay(uint8_t numDisplays, uint8_t clkPin, uint8_t dataPi
     pDisplayBuffers = (uint8_t *)malloc(sz);
     memset(pDisplayBuffers, 0, sz); 
 	
-	if(buildShadow)
-	{
-		// allocate RAM buffer for display bits
-		pShadowBuffers = (uint8_t *)malloc(sz);
-		memset(pShadowBuffers, 0, sz); 
-	}
-    
     // allocate a buffer for pin assignments
     pDisplayPins = (uint8_t *) malloc( sizeof(uint8_t) * numDisplays );
     memset(pDisplayPins, 0, sizeof(uint8_t) * numDisplays);
@@ -101,12 +94,6 @@ MatrixDisplay::~MatrixDisplay()
         free(pDisplayPins);
         pDisplayPins = NULL;
     }
-	
-	if(pShadowBuffers)
-	{
-		free(pShadowBuffers);
-		pShadowBuffers = NULL;		
-	}
 }
 
 
@@ -136,34 +123,31 @@ void MatrixDisplay::initDisplay(uint8_t displayNum, uint8_t pin, bool master)
 	clear(displayNum,true);
 }
 
-uint8_t MatrixDisplay::getPixel(uint8_t displayNum, uint8_t x, uint8_t y, bool useShadow)
+uint8_t MatrixDisplay::getPixel(uint8_t displayNum, uint8_t x, uint8_t y)
 {
     // Encode XY to an appropriate XY address
     uint8_t address = xyToIndex(x, y);
 	
 	// offset to the correct buffer for the display
     address += backBufferSize * displayNum;
-    	
 
     uint8_t bit = CalcBit(y);
 	
     // fetch the value byte from the buffer
 	address = (backBufferSize * displayNum) + address;
 	uint8_t value = 0;
-	
-	if(useShadow)
-	{
-		value = pShadowBuffers[address];
-	}else{
-		value = pDisplayBuffers[address];
-	}
-    
+
+	value = pDisplayBuffers[address];
   	
 	return (value & bit) ? 1 : 0; 
 }
 
+void MatrixDisplay::setRow(uint8_t row, uint8_t values)
+{
+	memcpy(pDisplayBuffers + row, &values, sizeof(uint8_t));
+}
 
-void MatrixDisplay::setPixel(uint8_t displayNum, uint8_t x, uint8_t y, uint8_t value, bool paint, bool useShadow)
+void MatrixDisplay::setPixel(uint8_t displayNum, uint8_t x, uint8_t y, uint8_t value, bool paint)
 {
     // calculate a pointer into the display buffer (6 bit offset)
     uint8_t address = xyToIndex(x, y);
@@ -173,37 +157,24 @@ void MatrixDisplay::setPixel(uint8_t displayNum, uint8_t x, uint8_t y, uint8_t v
     address += backBufferSize * displayNum;	
     uint8_t bit = CalcBit(y);
 	
-	
 	// ...and apply the value
     if(value)
     {
-		if(useShadow)
-		{
-			pShadowBuffers[address] |= bit;
-		}else{
-			pDisplayBuffers[address] |= bit;
-		}
+		pDisplayBuffers[address] |= bit;
     }
     else
     {
-		if(useShadow)
-		{
-			pShadowBuffers[address] &= ~bit;
-		}else{
-			pDisplayBuffers[address] &= ~bit;
-		}
+		pDisplayBuffers[address] &= ~bit;
     }
 	
-    if(useShadow) return;
-	
-	if(!paint)
+	if (!paint)
 	{
 		// flag the display as dirty
-		//pDisplayPins[displayNum] |= DIRTY_BIT;
-	}else{
+		// pDisplayPins[displayNum] |= DIRTY_BIT;
+	} else {
 		uint8_t dispAddress = displayXYToIndex(x, y);
 	    uint8_t value = pDisplayBuffers[address];
-		if(y>=4) // Devide y by 4. Work out whether it's odd or even. 8 pixels packed into 1 byte. 16 pixels are in two bytes. We need to figure out whether to shift the buffer
+		if (y >= 4) // Devide y by 4. Work out whether it's odd or even. 8 pixels packed into 1 byte. 16 pixels are in two bytes. We need to figure out whether to shift the buffer
 		{
 			value = pDisplayBuffers[address]  >> 4;
 		}
@@ -230,13 +201,7 @@ void MatrixDisplay::syncDisplays()
 	
     for(int8_t dispNum=0; dispNum < displayCount; ++dispNum)
     {
-	
-	   // if(pDisplayPins[dispNum] & DIRTY_BIT == 0) continue;
-		
 		bufferOffset = backBufferSize * dispNum;
-		
-		 // flip the "dirty" bit
-		 // pDisplayPins[dispNum] ^= DIRTY_BIT;
 		
 		selectDisplay(dispNum);
 		writeDataBE(3, HT1632_ID_WR); // Send "write to display" command
@@ -246,11 +211,10 @@ void MatrixDisplay::syncDisplays()
 		for(int8_t addr = 0; addr < backBufferSize; ++addr) // Thought i'd simplify this a touch
 		{
 			value = pDisplayBuffers[addr + bufferOffset];
-            writeDataLE(8, value);  
+			writeDataLE(8, value);
 		}
 		
 		releaseDisplay(dispNum);
-
 	}
 }
 
@@ -264,43 +228,24 @@ void MatrixDisplay::writeNibbles(uint8_t displayNum, uint8_t addr, uint8_t* data
 }
 
 
-void MatrixDisplay::clear(uint8_t displayNum, bool paint, bool useShadow)
+void MatrixDisplay::clear(uint8_t displayNum, bool paint)
 {
     // clear the display's backbuffer
-	if(useShadow)
-	{
-		memset( pShadowBuffers + (backBufferSize * displayNum), 
-				0, 
-				backBufferSize
-			   );	
-	
-	}else{
-		memset( pDisplayBuffers + (backBufferSize * displayNum), 
-				0, 
-				backBufferSize
-			   );
-		   
-		// Flag dirty bit
-		// pDisplayPins[displayNum] |= DIRTY_BIT;
-	}
-	
-
+	memset( pDisplayBuffers + (backBufferSize * displayNum), 
+			0, 
+			backBufferSize
+		   );
 	
 	// Write out change
-	if(paint && !useShadow) syncDisplays();
+	if(paint) syncDisplays();
 }
 
-void MatrixDisplay::clear(bool paint, bool useShadow)
+void MatrixDisplay::clear(bool paint)
 {
-	if(useShadow)
-	{
-		memset(pShadowBuffers,0, backBufferSize*displayCount);
-	}else{
-		memset(pDisplayBuffers,0, backBufferSize*displayCount);
-	}
+	memset(pDisplayBuffers,0, backBufferSize*displayCount);
 	
 	// Select all displays and clear
-	if(paint && !useShadow)
+	if(paint)
 	{
 	
 		for(int8_t i=0; i<displayCount; ++i) selectDisplay(i); // Enable all displays
@@ -409,7 +354,6 @@ void MatrixDisplay::writeDataBE(int8_t bitCount, uint8_t data, bool useNop)
 // Writes out MSB first
 void MatrixDisplay::preCommand()
 {
-   
 	bitBlast(clkPin, 0);
     bitBlast(dataPin, 1);
 	_nop();
@@ -437,15 +381,7 @@ void MatrixDisplay::preCommand()
 
 void MatrixDisplay::bitBlast(uint8_t pin, uint8_t data)
 {
-    // TODO: Only supports 328
-    if(pin < 14)
-    {
-        fWriteA(pin, data);
-    }
-    else
-    {
-        fWriteB(pin, data);
-    }
+	fWriteA(pin, data);
 }
 
 
@@ -462,13 +398,6 @@ uint8_t MatrixDisplay::getDisplayHeight()
 uint8_t MatrixDisplay::getDisplayWidth()
 {
 	return 32;
-}
-
-// Copy from the display buffer to the shadow buffer (takes a snapshot)
-void MatrixDisplay::copyBuffer()
-{
-	if(pShadowBuffers==0) return;
-	memcpy (pShadowBuffers, pDisplayBuffers, (backBufferSize * displayCount) );
 }
 
 void MatrixDisplay::shiftLeft()

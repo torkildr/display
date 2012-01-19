@@ -36,7 +36,6 @@
 class MatrixDisplay
 {
 private:
-	uint8_t *pShadowBuffers; // Will store the pixel data for each display
     uint8_t *pDisplayBuffers; // Will store the pixel data for each display
     uint8_t *pDisplayPins; // Will contain the pins for each CS
     
@@ -85,16 +84,19 @@ public:
 	// Number of displays (1-4)
 	// Shared clock pin
 	// Shared data pin
-    MatrixDisplay(uint8_t numDisplays, uint8_t clkPin, uint8_t dataPin, bool buildShadow = false);
+    MatrixDisplay(uint8_t numDisplays, uint8_t clkPin, uint8_t dataPin);
     
 	// Destructor
     ~MatrixDisplay();
     
 	// Fetch a pixel from a specific one display coordinate 
-    uint8_t getPixel(uint8_t displayNum, uint8_t x, uint8_t y, bool useShadow = false);
+    uint8_t getPixel(uint8_t displayNum, uint8_t x, uint8_t y);
     
+	//
+	void	setRow(uint8_t row, uint8_t values);
+	
 	// Set pixel from a specific one display coordinate
-    void    setPixel(uint8_t displayNum, uint8_t x, uint8_t y, uint8_t value, bool paint = false, bool useShadow = false);
+    void    setPixel(uint8_t displayNum, uint8_t x, uint8_t y, uint8_t value, bool paint = false);
 
 	// Initalise a display
     void    initDisplay(uint8_t displayNum, uint8_t pin, bool isMaster);
@@ -104,10 +106,10 @@ public:
 	
 	// Clear a single display. 
 	// paint ? Send data to display : Only clear data
-	void	clear(uint8_t displayNum, bool paint = false, bool useShadow = false);
+	void	clear(uint8_t displayNum, bool paint = false);
 	
 	// Clear all displays
-	void 	clear(bool paint = false, bool useShadow = false);
+	void 	clear(bool paint = false);
 	
 	// Write a single nybble to the display (the display writes 4 bits at a time min)
 	void	writeNibbles(uint8_t displayNum, uint8_t addr, uint8_t* data, uint8_t nybbleCount);
@@ -118,9 +120,6 @@ public:
 	// Defaults
 	uint8_t getDisplayHeight();
 	uint8_t getDisplayWidth();
-	
-	// Shadow 
-	void	copyBuffer();
 	
 	// Shift the buffer Left|Right
 	void	shiftLeft();
