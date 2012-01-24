@@ -22,17 +22,13 @@ void setupTimer() {
   TCCR1B = 0;
   TCNT1  = 0;
 
-  OCR1A = 31250;            // compare match register 16MHz/256/2Hz
+  OCR1A = 6000;            // compare match register 16MHz/256/2Hz
   TCCR1B |= (1 << WGM12);   // CTC mode
   TCCR1B |= (1 << CS12);    // 256 prescaler 
   TIMSK1 |= (1 << OCIE1A);  // enable timer compare interrupt
   interrupts();             // enable all interrupts
 }
 
-ISR(TIMER1_COMPA_vect)          // timer compare interrupt service routine
-{
-  digitalWrite(A0, digitalRead(A0) ^ 1);   // toggle LED pin
-}
 ///////////////////////////////
 // end helper functions
 ///////////////////////////////
@@ -57,46 +53,42 @@ void setup() {
 
 int photocell;
 
-/*
-void photocell_display() {
-  photocell = analogRead(PIN_PHOTOCELL);
+char* display_text;
+int display_length;
+int display_column;
 
-  snprintf(text, 17, "%4d", photocell);
-  
-  if (photocell > 512)
-    digitalWrite(PIN_LED, HIGH);
-  else
-    digitalWrite(PIN_LED, LOW);
-  
-  for (int i=0; i < 4; i++) {
-    disp.setBrightness(i, photocell / 64);
-  }
-  
-  disp.clear();
-    
-  printText(0, text);
-  printText(32, text);
-  printText(64, text);
-  printText(96, text);
-  
-  disp.syncDisplays();
-  
-  delay(150);
+void setupScrollingText(char* text)
+{
+  display_length = strlen(text);
+  display_text = text;
+  display_column = getXmax();
+
+  clearDisplay();
 }
-*/
+
+char* defaultText = "Hello, World!!";
+
+ISR(TIMER1_COMPA_vect)          // timer compare interrupt service routine
+{
+  syncDisplay();
+
+  byte skipped = printText(display_column, display_text, display_length);
+  
+  if (skipped) {
+    ++display_text;
+    --display_length;
+    display_column += skipped;
+  }
+
+  --display_column;
+
+  if (!display_length)
+  {
+    setupScrollingText(defaultText);
+  }
+}
 
 void loop() {
-  /*
-  printText("Dette er en test");
-  delay(5000);
-  printText("Av litt mindre teit m\xe5te \xe5 vise..");
-  delay(8000);
-  printText("Tekst p\xe5!");
-  delay(4000);
-  */
-
   //scrollText(" !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\xe6\xf8\xe5\xc6\xd8\xc5", 50);
-
-  scrollText("Dette er en liten test: torkild@retvedt.no ;-)", 100);
 }
 

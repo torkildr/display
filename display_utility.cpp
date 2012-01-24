@@ -35,6 +35,21 @@ void setupDisplay() {
   Serial.println(Y_MAX);
 }
 
+uint8_t getXmax()
+{
+  return X_MAX;
+}
+
+void clearDisplay()
+{
+  disp.clear(false);
+}
+
+void syncDisplay()
+{
+  disp.syncDisplays();
+}
+
 // Output a single character to the display
 byte printChar(int x, char c, byte *skipped){
   c = charLookup.indexOf(c);
@@ -97,7 +112,11 @@ byte printText(int x, char* c) {
 }
 
 void printText(char* c) {
-  disp.clear();
+  disp.clear(true);
+
+  // try to remove everything first, to remove "ghosting"
+  //disp.syncDisplays(false);
+
   printText(0, c);
   disp.syncDisplays();
 }
@@ -105,10 +124,9 @@ void printText(char* c) {
 // text needs to be zero terminated
 void scrollText(char* text, short slowdown) {
   int textLength = strlen(text);
-  int endPos = 0 - stringWidth(text, textLength);
 
   // needed?
-  disp.clear();
+  disp.clear(false);
 
   int Xpos = X_MAX;
 

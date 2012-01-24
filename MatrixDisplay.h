@@ -109,7 +109,7 @@ public:
 	void	clear(uint8_t displayNum, bool paint = false);
 	
 	// Clear all displays
-	void 	clear(bool paint = false);
+	void 	clearDisplays(bool paint = false);
 	
 	// Write a single nybble to the display (the display writes 4 bits at a time min)
 	void	writeNibbles(uint8_t displayNum, uint8_t addr, uint8_t* data, uint8_t nybbleCount);

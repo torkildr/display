@@ -31,4 +31,10 @@ void scrollText(char* text, short slowdown);
 
 void setupDisplay();
 
+void clearDisplay();
+
+void syncDisplay();
+
+uint8_t getXmax();
+
 #endif

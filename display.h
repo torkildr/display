@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <inttypes.h>
 
 #ifndef LED_H
 #define LED_H

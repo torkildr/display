@@ -240,7 +240,7 @@ void MatrixDisplay::clear(uint8_t displayNum, bool paint)
 	if(paint) syncDisplays();
 }
 
-void MatrixDisplay::clear(bool paint)
+void MatrixDisplay::clearDisplays(bool paint)
 {
 	memset(pDisplayBuffers,0, backBufferSize*displayCount);
 	
@@ -317,8 +317,6 @@ void MatrixDisplay::writeCommand(uint8_t displayNum, uint8_t command)
 // Writes out LSB first
 void MatrixDisplay::writeDataLE(int8_t bitCount, uint8_t data)
 {
-    //if(bitCount <= 0 || bitCount > 8) return;
-    
     // assumes correct display is selected
     for(int8_t i = 0; i < bitCount; ++i)
     {
