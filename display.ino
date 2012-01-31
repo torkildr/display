@@ -46,9 +46,11 @@ void setup() {
   // number of displays
   setupDisplay();
   
-  setupTimer();
+  //setupTimer();
   
   setupPhotocell();
+  
+  printText(1, "Hello, World!");
 }
 
 int photocell;
