@@ -144,16 +144,7 @@ uint8_t MatrixDisplay::getPixel(uint8_t displayNum, uint8_t x, uint8_t y)
 
 void MatrixDisplay::setRow(uint8_t row, uint8_t values)
 {
-  memcpy(pDisplayBuffers + row, &values, sizeof(uint8_t));
-  uint8_t displayNumber = (int) (row / BACKBUFFER_SIZE);
-
-  selectDisplay(displayNumber);  // Select chip
-
-  writeDataBE(3, HT1632_ID_WR);  // send ID: WRITE to RAM
-  writeDataBE(7, row); // Send address
-  writeDataLE(8, values);
-
-  releaseDisplay(displayNumber); // done
+	memcpy(pDisplayBuffers + row, &values, sizeof(uint8_t));
 }
 
 void MatrixDisplay::setPixel(uint8_t displayNum, uint8_t x, uint8_t y, uint8_t value, bool paint)
