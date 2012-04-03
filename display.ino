@@ -1,23 +1,31 @@
+#include <Dhcp.h>
+#include <Dns.h>
+#include <Ethernet.h>
+#include <EthernetClient.h>
+#include <EthernetServer.h>
+#include <EthernetUdp.h>
+#include <util.h>
+#include <SPI.h>
 #include "display.h"
 #include "display_utility.h"
+#include "Time.h"
+#include "ntp_time.h"
+#include "ethernet_utility.h"
 
 ///////////////////////////////
 // Setup functions
 ///////////////////////////////
 
-// Buffer pointer, more on this later
-char* text;
+// Global variables for text positioning
+byte scroll_enabled;
+char* display_text;
+int display_length;
+int display_column;
 
-void setupPhotocell() {
-  pinMode(PIN_PHOTOCELL, INPUT);
-  pinMode(PIN_LED, OUTPUT);
-  
-  text = (char *) malloc(17 * sizeof(char));
-}
-
-void setupTimer() {
+void setupDisplayTimer() {
   // initialize timer1 
   noInterrupts();           // disable all interrupts
+  
   TCCR1A = 0;
   TCCR1B = 0;
   TCNT1  = 0;
@@ -26,6 +34,7 @@ void setupTimer() {
   TCCR1B |= (1 << WGM12);   // CTC mode
   TCCR1B |= (1 << CS12);    // 256 prescaler 
   TIMSK1 |= (1 << OCIE1A);  // enable timer compare interrupt
+  
   interrupts();             // enable all interrupts
 }
 
@@ -37,60 +46,85 @@ void setupTimer() {
 // Main stuff!
 ///////////////////////////////////////////////////////////
 
+char * textBuffer;
+byte dirty;
+
 // set up
 void setup() {
   // start the serial library:
   Serial.begin(9600);
 
-  // Setup display
-  // number of displays
+  // All display stuff
+  
   setupDisplay();
+  clearDisplay();
   
-  //setupTimer();
+  display_column = 10;
+  scroll_enabled = 0;
+  dirty = 0;
   
-  setupPhotocell();
+  // Time for ethernet stuff
+
+  textBuffer = (char *) malloc(100);
+  strcpy(textBuffer, "Connecting...");
+
+  setupDisplayTimer();
+
+  delay(2000);
   
-  printText(1, "Hello, World!");
+  setupEthernet();
+  //getData(textBuffer);
+
+  display_column = 5
+  ;
+  setupNTP();
 }
-
-int photocell;
-
-char* display_text;
-int display_length;
-int display_column;
 
 void setupScrollingText(char* text)
 {
-  display_length = strlen(text);
   display_text = text;
   display_column = getXmax();
 
   clearDisplay();
 }
 
-char* defaultText = "Hello, World!!";
-
-ISR(TIMER1_COMPA_vect)          // timer compare interrupt service routine
+// Display timer, refreshes text, potentially scrolls as well
+// TODO: Use callback to scroll text?
+ISR(TIMER1_COMPA_vect)
 {
   syncDisplay();
+  clearDisplay();
 
-  byte skipped = printText(display_column, display_text, display_length);
-  
-  if (skipped) {
-    ++display_text;
-    --display_length;
-    display_column += skipped;
-  }
+  byte skipped = printText(display_column, textBuffer);
 
-  --display_column;
-
-  if (!display_length)
+  if (scroll_enabled)
   {
-    setupScrollingText(defaultText);
+    if (skipped) {
+      ++display_text;
+      --display_length;
+      display_column += skipped;
+    }
+  
+    --display_column;
+    if (!display_length)
+    {
+      setupScrollingText(textBuffer);
+    }
   }
 }
 
+time_t prevDisplay = 0;
+
 void loop() {
-  //scrollText(" !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\xe6\xf8\xe5\xc6\xd8\xc5", 50);
+  if( now() != prevDisplay) // update the display only if the time has changed
+  {
+    prevDisplay = now(); // every 15 second
+    
+    char monthName[4];
+    strcpy(monthName, monthShortStr(month()));
+    
+    sprintf(textBuffer, "%s %d %s, %02d:%02d", dayStr(weekday()) , day(), monthName, hour(), minute());
+    Serial.println(textBuffer);
+  }
 }
 
