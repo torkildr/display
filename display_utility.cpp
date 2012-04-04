@@ -146,3 +146,11 @@ void scrollText(char* text, short slowdown) {
   }
 }
 
+void setBrightness(uint8_t pwmValue)
+{
+  for (int i=0; i < DISPLAY_COUNT; i++)
+  {
+    disp.setBrightness(i, pwmValue);
+  }
+}
+

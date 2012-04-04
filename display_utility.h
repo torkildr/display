@@ -37,4 +37,6 @@ void syncDisplay();
 
 uint8_t getXmax();
 
+void setBrightness(uint8_t pwmValue);
+
 #endif

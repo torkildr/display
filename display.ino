@@ -30,7 +30,8 @@ void setupDisplayTimer() {
   TCCR1B = 0;
   TCNT1  = 0;
 
-  OCR1A = 6000;            // compare match register 16MHz/256/2Hz
+  //OCR1A = 6000;            // compare match register 16MHz/256/2Hz
+  OCR1A = 32000;            // compare match register 16MHz/256/2Hz
   TCCR1B |= (1 << WGM12);   // CTC mode
   TCCR1B |= (1 << CS12);    // 256 prescaler 
   TIMSK1 |= (1 << OCIE1A);  // enable timer compare interrupt
@@ -114,6 +115,7 @@ ISR(TIMER1_COMPA_vect)
 }
 
 time_t prevDisplay = 0;
+byte brightness = 15;
 
 void loop() {
   if( now() != prevDisplay) // update the display only if the time has changed
@@ -123,8 +125,22 @@ void loop() {
     char monthName[4];
     strcpy(monthName, monthShortStr(month()));
     
-    sprintf(textBuffer, "%s %d %s, %02d:%02d", dayStr(weekday()) , day(), monthName, hour(), minute());
+    sprintf(textBuffer, "%s, %s %d, %02d:%02d ", dayStr(weekday()), monthName, day(), hour(), minute());
     Serial.println(textBuffer);
+    
+    if (hour() > 23 || hour() < 7) {
+      if (brightness != 4) {
+        brightness = 4;
+        setBrightness(brightness);
+        Serial.println("Setting brightness to low");
+      }
+    } else {
+      if (brightness != 15) {
+        brightness = 15;
+        setBrightness(brightness);
+        Serial.println("Setting brightness to high");
+      }
+    }
   }
 }
 
