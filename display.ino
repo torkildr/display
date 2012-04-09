@@ -93,6 +93,8 @@ void setupScrollingText(char* text)
 // TODO: Use callback to scroll text?
 ISR(TIMER1_COMPA_vect)
 {
+  noInterrupts();
+
   syncDisplay();
   clearDisplay();
 
@@ -112,10 +114,24 @@ ISR(TIMER1_COMPA_vect)
       setupScrollingText(textBuffer);
     }
   }
+
+  interrupts();
 }
 
 time_t prevDisplay = 0;
 byte brightness = 15;
+
+extern void *__brkval;
+
+int showFreeMem()
+{
+  int free_memory;
+
+  free_memory = ((int)&free_memory) - ((int)__brkval);
+  
+  Serial.print("Free mem: ");
+  Serial.println(free_memory);
+}
 
 void loop() {
   if( now() != prevDisplay) // update the display only if the time has changed
@@ -141,6 +157,8 @@ void loop() {
         Serial.println("Setting brightness to high");
       }
     }
+
+    showFreeMem();
   }
 }
 

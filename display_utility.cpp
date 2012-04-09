@@ -42,7 +42,7 @@ uint8_t getXmax()
 
 void clearDisplay()
 {
-  disp.clear(false);
+  disp.clearDisplays(false);
 }
 
 void syncDisplay()
