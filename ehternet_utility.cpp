@@ -47,14 +47,10 @@ void getData(char *dst)
 {
   Serial.println("Trying to grab data from server:");
   
-  // if there are incoming bytes available
-  
-  
   // from the server, read them and print them:
   int i = 0;
   
   while (!client.available());
-  
 
   while (client.available()) {
     char c = client.read();
@@ -65,7 +61,6 @@ void getData(char *dst)
       dst[i] = c;
       //dst[i+1] = 0;
     }
-
 
     i++;
   }
@@ -80,3 +75,4 @@ void getData(char *dst)
     while(true);
   }
 }
+

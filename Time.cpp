@@ -31,7 +31,7 @@
 
 static tmElements_t tm;          // a cache of time elements
 static time_t       cacheTime;   // the time the cache was updated
-static time_t       syncInterval = 30;  // time sync will be attempted after this many seconds
+static time_t       syncInterval = 5;  // time sync will be attempted after this many seconds
 
 void refreshCache( time_t t){
   if( t != cacheTime)

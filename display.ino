@@ -49,6 +49,16 @@ void setupDisplayTimer() {
 
 char * textBuffer;
 byte dirty;
+boolean loopEnabled;
+
+void refreshEthernet()
+{
+  // Time for ethernet stuff
+  textBuffer = (char *) malloc(100);
+  strcpy(textBuffer, "Connecting...");
+
+  setupEthernet();
+}
 
 // set up
 void setup() {
@@ -60,25 +70,16 @@ void setup() {
   setupDisplay();
   clearDisplay();
   
-  display_column = 10;
+  display_column = 5;
   scroll_enabled = 0;
   dirty = 0;
   
-  // Time for ethernet stuff
-
-  textBuffer = (char *) malloc(100);
-  strcpy(textBuffer, "Connecting...");
-
   setupDisplayTimer();
 
-  delay(2000);
-  
-  setupEthernet();
-  //getData(textBuffer);
-
-  display_column = 5
-  ;
+  refreshEthernet();
   setupNTP();
+  
+  loopEnabled = true;
 }
 
 void setupScrollingText(char* text)
@@ -126,7 +127,6 @@ extern void *__brkval;
 int showFreeMem()
 {
   int free_memory;
-
   free_memory = ((int)&free_memory) - ((int)__brkval);
   
   Serial.print("Free mem: ");
@@ -134,17 +134,23 @@ int showFreeMem()
 }
 
 void loop() {
-  if( now() != prevDisplay) // update the display only if the time has changed
+  if(now() != prevDisplay && loopEnabled) // each second
   {
-    prevDisplay = now(); // every 15 second
+    prevDisplay = now();
     
     char monthName[4];
     strcpy(monthName, monthShortStr(month()));
     
-    sprintf(textBuffer, "%s, %s %d, %02d:%02d ", dayStr(weekday()), monthName, day(), hour(), minute());
+    // if not date is after 2000, we're calling bullshit
+    if (prevDisplay > 946684800UL)
+      sprintf(textBuffer, "%s, %s %d, %02d:%02d ", dayStr(weekday()), monthName, day(), hour(), minute());
+    else
+      sprintf(textBuffer, "Connecting...");
+    
     Serial.println(textBuffer);
     
-    if (hour() > 23 || hour() < 7) {
+    // 23 -> 08, dimmed down
+    if (hour() >= 23 || hour() < 8) {
       if (brightness != 4) {
         brightness = 4;
         setBrightness(brightness);
@@ -157,6 +163,7 @@ void loop() {
         Serial.println("Setting brightness to high");
       }
     }
+
 
     showFreeMem();
   }
